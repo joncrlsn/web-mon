@@ -5,5 +5,5 @@ A small web application monitor.  Be warned, this is still in progress.  This wa
 
 ### todo
 * Figure out this error:  fatal error: all goroutines are asleep - deadlock!
-* Externalize the URLs to be monitored
+* Externalize the hard-coded variables in main.go to a config file
 * Add the normal flags (--help, --version, --verbose, etc)

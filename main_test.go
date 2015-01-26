@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-func init() {
-}
-
 // Test_monitoring overrides the doGet and handleSlowResponse functions
 func Test_monitoring(t *testing.T) {
 
@@ -33,8 +30,8 @@ func Test_monitoring(t *testing.T) {
 	}
 
 	targets = []Target{
-		Target{host: "tst-msp", url: "https://web-tst-msp/api/Ping", user: "central"},
-		Target{host: "tst-sea", url: "https://web-tst-sea/api/Ping", user: "blue"},
+		Target{host: "tst-msp", url: "https://web-tst-msp/api/Ping", pidOwner: "central"},
+		Target{host: "tst-sea", url: "https://web-tst-sea/api/Ping", pidOwner: "blue"},
 	}
 
 	// start each target monitor in a go-routine

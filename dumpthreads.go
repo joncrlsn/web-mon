@@ -8,17 +8,19 @@ import (
 	templ "text/template"
 )
 
+// This script creates an SSH session and remotely runs a bash script
 var dumpThreadsScript = `#!/bin/bash
 # Dumps Java threads a certain number of times
-ssh -o StrictHostKeyChecking=no {{.host}}.c42 'bash -s' <<-END
+ssh -o StrictHostKeyChecking=no {{.host}} 'bash -s' <<-END
 #!/bin/bash
 COUNT={{.dumpCount}}
-FILE="/home/{{.cpuser}}/logs/threads.\$(date +%Y-%m-%d_%H%M%S).{{.host}}"
+# Write the thread dumps to a particular location
+FILE="/home/{{.pidOwner}}/logs/threads.\$(date +%Y-%m-%d_%H%M%S).{{.host}}"
 PID=\$(ps aux | grep -P '(central|blue).*java' | grep -v grep | grep -v flock | egrep -v 'su (central|blue)' | awk '{print \$2}')
 #echo "\$FILE"
 #echo "\$PID"
 for (( c=1; c<=COUNT; c++ )) ; do
-    sudo su {{.cpuser}} -- -c "touch \${FILE}; jstack -l \$PID >> \${FILE}"
+    sudo su {{.pidOwner}} -- -c "touch \${FILE}; jstack -l \$PID >> \${FILE}"
     echo "Threads dumped... to \$FILE.  Sleeping for {{.intervalSeconds}} seconds..."
     sleep {{.intervalSeconds}}
 done
@@ -27,7 +29,7 @@ END
 `
 
 // dumpJavaThreds dumps the Java threads on the given host for the given number of times
-// This will need modification for monitoring a Windows-based resource because it creates a 
+// This will need modification for monitoring a Windows-based resource because it creates a
 // bash script that is executed remotely.
 func dumpJavaThreads(host, user string, dumpCount int, intervalSeconds int) error {
 
@@ -41,11 +43,12 @@ func dumpJavaThreads(host, user string, dumpCount int, intervalSeconds int) erro
 
 	t := templ.New("Dump threads script")
 	templ.Must(t.Parse(dumpThreadsScript))
-	ctx := map[string]string{"cpuser": user,
+	context := map[string]string{
+		"pidOwner":        user, // user is the account process is running as
 		"dumpCount":       strconv.Itoa(dumpCount),
 		"intervalSeconds": strconv.Itoa(intervalSeconds),
 		"host":            host}
-	err = t.Execute(file, ctx)
+	err = t.Execute(file, context)
 	if err != nil {
 		return err
 	}

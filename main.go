@@ -2,32 +2,40 @@ package main
 
 import (
 	"fmt"
+	"net/smtp"
 	"time"
 )
 
 const (
-	ymdhmsFormat       = "2006-01-02_1504"
-	maxResponseTime    = 60 * time.Second
-	threadDumpCount    = 3
-	threadDumpInterval = 8 // seconds
+	ymdhmsFormat = "2006-01-02_1504"
 )
 
 // alerts communicates errors back from the monitoring go-routines
 var alerts chan *Target
 
-var monitorInterval = 3 * time.Minute
-var disableInterval = 60 * time.Minute // wait interval after a targets alert
+var (
+	maxResponseTime    = 60 * time.Second
+	threadDumpCount    = 3
+	threadDumpInterval = 8 // seconds
+	monitorInterval    = 3 * time.Minute
+	disableInterval    = 60 * time.Minute // wait interval after a targets alert
+	mailHost           = "localhost"
+	mailUsername       = ""
+	mailPassword       = ""
+	mailFrom           = "joe@acme.com"
+	mailTo             = []string{"joe@acme.com"}
+)
 
 var targets = []Target{
-	Target{host: "nam-msp", url: "https://web-nam-msp.crashplan.com/api/Ping", user: "central"},
-	Target{host: "nbm-msp", url: "https://web-nbm-msp.crashplanpro.com/api/Ping", user: "blue"},
+	Target{host: "xyz", url: "https://xyz.acme.com/api/Ping", pidOwner: "central"},
+	Target{host: "abc", url: "https://abc.acme.com/api/Ping", pidOwner: "blue"},
 }
 
 // Target represents a hostname and a url to be monitored
 type Target struct {
-	host string
-	url  string
-	user string
+	host     string
+	url      string
+	pidOwner string
 }
 
 // doGet is overridden when testing
@@ -40,7 +48,7 @@ var doGet = func(url string) error {
 // handleSlowResponse is overridden when testing
 var handleSlowResponse = func(target *Target) {
 	dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
-	// TODO: sendEmail(target, recipientList)
+	smtp.SendMail(mailHost, nil /*no auth*/, mailFrom, mailTo, []byte("Slow response from "+target.host))
 }
 
 // main starts a go-routine for each host and url that we are monitoring
