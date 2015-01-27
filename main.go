@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2015 Jon Carlson.  All rights reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+//
 package main
 
 import (
@@ -10,9 +15,6 @@ const (
 	ymdhmsFormat = "2006-01-02_1504"
 )
 
-// alerts communicates errors back from the monitoring go-routines
-var alerts chan *Target
-
 var (
 	maxResponseTime    = 60 * time.Second
 	threadDumpCount    = 3
@@ -22,7 +24,7 @@ var (
 	mailHost           = "localhost"
 	mailUsername       = ""
 	mailPassword       = ""
-	mailFrom           = "joe@acme.com"
+	mailFrom           = "monitor@acme.com"
 	mailTo             = []string{"joe@acme.com"}
 )
 
@@ -46,34 +48,46 @@ var doGet = func(url string) error {
 }
 
 // handleSlowResponse is overridden when testing
-var handleSlowResponse = func(target *Target) {
+var handleSlowResponse = func(target Target) {
 	dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
 	smtp.SendMail(mailHost, nil /*no auth*/, mailFrom, mailTo, []byte("Slow response from "+target.host))
 }
 
 // main starts a go-routine for each host and url that we are monitoring
 func main() {
-	// start each target monitor in a go-routine
+
+	// alertsChan communicates errors back from the monitoring go-routines
+	alertsChan := make(chan Target)
+
+	// Start each target monitor in a go-routine
+	// When a slow response or an error occurs, a monitor send an alert to the alerts channel
 	for _, target := range targets {
-		go monitor(&target)
+		go monitor(target, alertsChan)
 	}
 
-	// Wait for monitors to return alerts, and restart them
-	for target := range alerts {
-		fmt.Printf("slow response from %s\n", target.host)
-		handleSlowResponse(target)
+	// Keep checking the alerts channel for alerts
+	for {
+		select {
+		case tgt := <-alertsChan:
+			fmt.Printf("Slow response from %s\n", tgt.host)
+		default:
+			fmt.Println("No message received")
+			time.Sleep(2 * time.Second)
+		}
 	}
+
 }
 
 // monitor waits for a period of time then start times a request for the given URL on a regular basis.
 // If the response is too slow, dump the Java threads and send an email
-func monitor(target *Target) {
+func monitor(target Target, alertsChan chan<- Target) {
 	fmt.Printf("monitoring %s: %s\n", target.host, target.url)
 	for {
+		//fmt.Println("doGet(", target.url, ")")
 		err := doGet(target.url)
 		if err != nil {
 			// Let main process know that we've found a slow system
-			alerts <- target
+			alertsChan <- target
 			time.Sleep(disableInterval)
 		} else {
 			time.Sleep(monitorInterval)
