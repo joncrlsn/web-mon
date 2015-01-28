@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2015 Jon Carlson.  All rights reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+//
 package main
 
 import (
@@ -10,7 +15,7 @@ import (
 
 // This script creates an SSH session and remotely runs a bash script
 var dumpThreadsScript = `#!/bin/bash
-# Dumps Java threads a certain number of times
+# Remotely dumps Java threads a number of times
 ssh -o StrictHostKeyChecking=no {{.host}} 'bash -s' <<-END
 #!/bin/bash
 COUNT={{.dumpCount}}

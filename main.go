@@ -7,7 +7,9 @@ package main
 
 import (
 	"fmt"
+	flag "github.com/ogier/pflag"
 	"net/smtp"
+	"os"
 	"time"
 )
 
@@ -16,6 +18,8 @@ const (
 )
 
 var (
+	version            = "0.2"
+	verbose            = false
 	maxResponseTime    = 60 * time.Second
 	threadDumpCount    = 3
 	threadDumpInterval = 8 // seconds
@@ -24,8 +28,8 @@ var (
 	mailHost           = "localhost"
 	mailUsername       = ""
 	mailPassword       = ""
-	mailFrom           = "monitor@acme.com"
-	mailTo             = []string{"joe@acme.com"}
+	mailFrom           = ""         // an email address
+	mailTo             = []string{} // a slice of email addresses
 )
 
 var targets = []Target{
@@ -53,8 +57,52 @@ var handleSlowResponse = func(target Target) {
 	smtp.SendMail(mailHost, nil /*no auth*/, mailFrom, mailTo, []byte("Slow response from "+target.host))
 }
 
+// processFlags returns true if processing should continue, false otherwise
+func processFlags() bool {
+	var configFileName string
+	var versionFlag bool
+	var helpFlag bool
+	var generateConfig bool
+
+	flag.StringVarP(&configFileName, "config", "c", "", "path and name of the config file")
+	flag.BoolVarP(&versionFlag, "version", "V", false, "displays version information")
+	flag.BoolVarP(&verbose, "verbose", "v", false, "outputs extra information")
+	flag.BoolVarP(&helpFlag, "help", "?", false, "displays usage help")
+	flag.BoolVarP(&generateConfig, "generate-config", "g", false, "prints a default config file to standard output")
+	flag.Parse()
+
+	if versionFlag {
+		fmt.Fprintf(os.Stderr, "%s version %s\n", os.Args[0], version)
+		fmt.Fprintln(os.Stderr, "Copyright (c) 2015 Jon Carlson.  All rights reserved.")
+		fmt.Fprintln(os.Stderr, "Use of this source code is governed by the MIT license")
+		fmt.Fprintln(os.Stderr, "that can be found here: http://opensource.org/licenses/MIT")
+		return false
+	}
+
+	if helpFlag {
+		usage()
+		return false
+	}
+
+	if generateConfig {
+		generateConfigurationFile()
+		return false
+	}
+
+	if len(configFileName) > 0 {
+		processConfigFile(configFileName)
+	}
+
+	return true
+}
+
 // main starts a go-routine for each host and url that we are monitoring
 func main() {
+
+	if !processFlags() {
+		// no need to proceed
+		return
+	}
 
 	// alertsChan communicates errors back from the monitoring go-routines
 	alertsChan := make(chan Target)
@@ -71,8 +119,7 @@ func main() {
 		case tgt := <-alertsChan:
 			fmt.Printf("Slow response from %s\n", tgt.host)
 		default:
-			fmt.Println("No message received")
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 	}
 
@@ -93,4 +140,16 @@ func monitor(target Target, alertsChan chan<- Target) {
 			time.Sleep(monitorInterval)
 		}
 	}
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: %s --config <config-file> \n", os.Args[0])
+	fmt.Fprintln(os.Stderr, `
+Program flags are:
+  -?, --help            : prints a summary of the commands accepted by pgrun
+  -V, --version         : prints the version of pgrun being run
+  -v, --verbose         : prints extra detail about what is happening
+  -c, --config          : name and path of config file
+  -g, --generate-config : prints an example config file to standard output
+`)
 }
