@@ -8,7 +8,6 @@ package main
 import (
 	"fmt"
 	flag "github.com/ogier/pflag"
-	"net/smtp"
 	"os"
 	"time"
 )
@@ -18,7 +17,7 @@ const (
 )
 
 var (
-	version            = "0.2"
+	version            = "0.4"
 	verbose            = false
 	maxResponseTime    = 60 * time.Second
 	threadDumpCount    = 3
@@ -26,6 +25,7 @@ var (
 	monitorInterval    = 3 * time.Minute
 	disableInterval    = 60 * time.Minute // wait interval after a targets alert
 	mailHost           = "localhost"
+	mailPort           = 25
 	mailUsername       = ""
 	mailPassword       = ""
 	mailFrom           = ""         // an email address
@@ -48,13 +48,18 @@ type Target struct {
 var doGet = func(url string) error {
 	client := NewTimeoutClient(maxResponseTime, maxResponseTime)
 	_, err := client.Get(url)
+	if verbose {
+		fmt.Println("response was within time limit", url)
+	}
 	return err
 }
 
 // handleSlowResponse is overridden when testing
 var handleSlowResponse = func(target Target) {
+	fmt.Println("Slow or error response from", target.host)
+
+    sendMail("Slow or error response from "+target.host, "See subject")
 	dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
-	smtp.SendMail(mailHost, nil /*no auth*/, mailFrom, mailTo, []byte("Slow response from "+target.host))
 }
 
 // processFlags returns true if processing should continue, false otherwise
@@ -63,17 +68,19 @@ func processFlags() bool {
 	var versionFlag bool
 	var helpFlag bool
 	var generateConfig bool
+	var testMail bool
 
 	flag.StringVarP(&configFileName, "config", "c", "", "path and name of the config file")
 	flag.BoolVarP(&versionFlag, "version", "V", false, "displays version information")
 	flag.BoolVarP(&verbose, "verbose", "v", false, "outputs extra information")
 	flag.BoolVarP(&helpFlag, "help", "?", false, "displays usage help")
 	flag.BoolVarP(&generateConfig, "generate-config", "g", false, "prints a default config file to standard output")
+	flag.BoolVarP(&testMail, "test-mail", "m", false, "sends a test email to the configured mail server")
 	flag.Parse()
 
 	if versionFlag {
 		fmt.Fprintf(os.Stderr, "%s version %s\n", os.Args[0], version)
-		fmt.Fprintln(os.Stderr, "Copyright (c) 2015 Jon Carlson.  All rights reserved.")
+		fmt.Fprintln(os.Stderr, "\nCopyright (c) 2015 Jon Carlson.  All rights reserved.")
 		fmt.Fprintln(os.Stderr, "Use of this source code is governed by the MIT license")
 		fmt.Fprintln(os.Stderr, "that can be found here: http://opensource.org/licenses/MIT")
 		return false
@@ -91,6 +98,11 @@ func processFlags() bool {
 
 	if len(configFileName) > 0 {
 		processConfigFile(configFileName)
+	}
+
+	if testMail {
+		testMailConfig()
+		return false
 	}
 
 	return true
@@ -118,6 +130,7 @@ func main() {
 		select {
 		case tgt := <-alertsChan:
 			fmt.Printf("Slow response from %s\n", tgt.host)
+			handleSlowResponse(tgt)
 		default:
 			time.Sleep(5 * time.Second)
 		}
@@ -152,4 +165,8 @@ Program flags are:
   -c, --config          : name and path of config file
   -g, --generate-config : prints an example config file to standard output
 `)
+}
+
+func testMailConfig() {
+    sendMail("This is a test from web-mon", "see subject")
 }

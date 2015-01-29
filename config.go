@@ -46,6 +46,9 @@ func boolValue(props map[string]string, name string) (bool, bool) {
 
 // processConfigFile reads the properties in the given file and assigns them to global variables
 func processConfigFile(fileName string) {
+	if verbose {
+		fmt.Println("Processing config file:", fileName)
+	}
 	props, err := _readPropertiesFile(fileName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading config file "+fileName+":", err)
@@ -69,60 +72,47 @@ func _processConfig(props map[string]string) {
 	}
 	if intVal, ok = intValue(props, "maxResponseTimeInSeconds"); ok {
 		maxResponseTime = time.Duration(intVal) * time.Second
-		if verbose {
-			fmt.Println("maxResponseTime:", maxResponseTime)
-		}
+		fmt.Println("maxResponseTime:", maxResponseTime)
 	}
 	if intVal, ok = intValue(props, "threadDumpCount"); ok {
 		threadDumpCount = intVal
-		if verbose {
-			fmt.Println("threadDumpCount:", threadDumpCount)
-		}
+		fmt.Println("threadDumpCount:", threadDumpCount)
 	}
 	if intVal, ok = intValue(props, "threadDumpIntervalInSeconds"); ok {
 		threadDumpInterval = intVal
-		if verbose {
-			fmt.Println("threadDumpInterval:", threadDumpInterval)
-		}
+		fmt.Println("threadDumpInterval:", threadDumpInterval)
 	}
 	if intVal, ok = intValue(props, "monitorIntervalInMinutes"); ok {
 		monitorInterval = time.Duration(intVal) * time.Minute
-		if verbose {
-			fmt.Println("monitorInterval:", monitorInterval)
-		}
+		fmt.Println("monitorInterval:", monitorInterval)
 	}
 	if intVal, ok = intValue(props, "disableIntervalInMinutes"); ok {
 		disableInterval = time.Duration(intVal) * time.Minute
-		if verbose {
-			fmt.Println("monitorInterval:", monitorInterval)
-		}
+		fmt.Println("monitorInterval:", monitorInterval)
 	}
 	if strVal, ok = props["mailHost"]; ok {
 		mailHost = strVal
-		if verbose {
-			fmt.Println("mailHost:", mailHost)
-		}
+		fmt.Println("mailHost:", mailHost)
+	}
+	if intVal, ok = intValue(props,"mailPort"); ok {
+		mailPort = intVal
+		fmt.Println("mailPort:", mailPort)
 	}
 	if strVal, ok = props["mailUsername"]; ok {
 		mailUsername = strVal
-		if verbose {
-			fmt.Println("mailUsername:", mailUsername)
-		}
+		fmt.Println("mailUsername:", mailUsername)
 	}
 	if strVal, ok = props["mailPassword"]; ok {
 		mailPassword = strVal
+		fmt.Println("mailPassword: *******")
 	}
 	if strVal, ok = props["mailFrom"]; ok {
 		mailFrom = strVal
-		if verbose {
-			fmt.Println("mailFrom:", mailFrom)
-		}
+		fmt.Println("mailFrom:", mailFrom)
 	}
 	if strVal, ok = props["mailTo"]; ok {
 		mailTo = propertySplittingRegex.Split(strVal, -1)
-		if verbose {
-			fmt.Println("mailTo:", mailTo)
-		}
+		fmt.Println("mailTo:", mailTo)
 	}
 
 	//
@@ -136,12 +126,13 @@ func _processConfig(props map[string]string) {
 	i := 0
 	for {
 		i++
-		if strVal, ok = props["monitor.target"+string(i)]; ok {
+		if strVal, ok = props["monitor.target"+strconv.Itoa(i)]; ok {
 			tgt := commaSplittingRegex.Split(strVal, 3)
 			formatValid := len(tgt) == 3
 			if len(tgt) == 3 {
 				if strings.HasPrefix(tgt[1], "http") {
-					targets = append(targets, Target{host: tgt[0], url: tgt[1], pidOwner: tgt[2]})
+					target := Target{host: tgt[0], url: tgt[1], pidOwner: tgt[2]}
+					targets = append(targets, target)
 				} else {
 					formatValid = false
 				}
@@ -190,6 +181,7 @@ func generateConfigurationFile() {
 # ===================
 
 # mailHost = localhost
+# mailPort = 25
 # mailUsername = 
 # mailPassword = 
 
