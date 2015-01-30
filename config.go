@@ -90,11 +90,15 @@ func _processConfig(props map[string]string) {
 		disableInterval = time.Duration(intVal) * time.Minute
 		fmt.Println("monitorInterval:", monitorInterval)
 	}
+	if strVal, ok = props["shellCommand"]; ok {
+		shellCommand = strVal
+		fmt.Println("shellCommand:", shellCommand)
+	}
 	if strVal, ok = props["mailHost"]; ok {
 		mailHost = strVal
 		fmt.Println("mailHost:", mailHost)
 	}
-	if intVal, ok = intValue(props,"mailPort"); ok {
+	if intVal, ok = intValue(props, "mailPort"); ok {
 		mailPort = intVal
 		fmt.Println("mailPort:", mailPort)
 	}
@@ -173,6 +177,11 @@ func generateConfigurationFile() {
 
 # The number of minutes monitoring will be disabled after an alert occurs
 # disableIntervalInMinutes    = 60
+
+# A command to be executed when an alert fires
+# e.g. ssh to the host and dump threads
+# The hostname and process owner are passed as the arguments
+# shellCommand                =
 
 # verbose = false
 

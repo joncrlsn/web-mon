@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,7 +15,8 @@ import (
 )
 
 // This script creates an SSH session and remotely runs a bash script
-var dumpThreadsScript = `#!/bin/bash
+var dumpThreadsScript = `
+#!/bin/bash
 # Remotely dumps Java threads a number of times
 ssh -o StrictHostKeyChecking=no {{.host}} 'bash -s' <<-END
 #!/bin/bash
@@ -60,7 +62,7 @@ func dumpJavaThreads(host, user string, dumpCount int, intervalSeconds int) erro
 	file.Close()
 
 	cmdStr := "./" + host + "_dumpThreadScript.sh"
-	fmt.Printf("Executing: %s \n", cmdStr)
+	log.Printf("Executing: %s \n", cmdStr)
 	sshCmd := exec.Command(cmdStr)
 	bytes, err := sshCmd.CombinedOutput()
 	fmt.Printf("Output:\n %s \n", string(bytes))

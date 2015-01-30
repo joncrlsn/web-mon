@@ -16,13 +16,13 @@
 package main
 
 import (
-    "os"
-    "bytes"
-    "fmt"
-    "net/smtp"
-    "runtime"
-    "strings"
-    "text/template"
+	"bytes"
+	"fmt"
+	"net/smtp"
+	//"os"
+	"runtime"
+	"strings"
+	"text/template"
 )
 
 var _emailScript = `From: {{.From}}
@@ -35,67 +35,65 @@ Content-Type: text/html; charset="UTF-8"
 
 // sendMail sends an email with values from the config file
 func sendMail(subject, message string) error {
-    err := _sendEmail(mailHost, mailPort, mailUsername, mailPassword, mailFrom, mailTo, subject, message)
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error sending mail:", err)
-        return err
-    }
-    return nil
+	return _sendEmail(mailHost, mailPort, mailUsername, mailPassword, mailFrom, mailTo, subject, message)
 }
 
 // _sendEmail does the detailed-work for sending an email
 func _sendEmail(host string, port int, userName string, password string, from string, to []string, subject string, message string) (err error) {
-    defer _catchPanic(&err, "_sendEmail")
+	defer _catchPanic(&err, "_sendEmail")
 
-    parameters := struct {
-        From string
-        To string
-        Subject string
-        Message string
-    }{
-        userName,
-        strings.Join([]string(to), ","),
-        subject,
-        message,
-    }
+	parameters := struct {
+		From    string
+		To      string
+		Subject string
+		Message string
+	}{
+		userName,
+		strings.Join([]string(to), ","),
+		subject,
+		message,
+	}
 
-    buffer := new(bytes.Buffer)
+	buffer := new(bytes.Buffer)
 
-    template := template.Must(template.New("emailTemplate").Parse(_emailScript))
-    template.Execute(buffer, &parameters)
+	template := template.Must(template.New("emailTemplate").Parse(_emailScript))
+	template.Execute(buffer, &parameters)
 
-    auth := smtp.PlainAuth("", userName, password, host)
+	auth := smtp.PlainAuth("", userName, password, host)
+	if len(userName) == 0 {
+		auth = nil
+	}
 
-    err = smtp.SendMail(
-        fmt.Sprintf("%s:%d", host, port),
-        auth,
-        from,
-        to,
-        buffer.Bytes())
+	err = smtp.SendMail(
+		fmt.Sprintf("%s:%d", host, port),
+		auth,
+		from,
+		to,
+		buffer.Bytes())
 
-    return err
+	return err
 }
 
 func _catchPanic(err *error, functionName string) {
-    if r := recover(); r != nil {
-        fmt.Printf("%s : PANIC Defered : %v\n", functionName, r)
+	if r := recover(); r != nil {
+		fmt.Printf("%s : PANIC Defered : %v\n", functionName, r)
 
-        // Capture the stack trace
-        buf := make([]byte, 10000)
-        runtime.Stack(buf, false)
+		// Capture the stack trace
+		buf := make([]byte, 10000)
+		runtime.Stack(buf, false)
 
-        fmt.Printf("%s : Stack Trace : %s", functionName, string(buf))
+		fmt.Printf("%s : Stack Trace : %s", functionName, string(buf))
 
-        if err != nil {
-            *err = fmt.Errorf("%v", r)
-        }
-    } else if err != nil && *err != nil {
-        fmt.Printf("%s : ERROR : %v\n", functionName, *err)
+		if err != nil {
+			*err = fmt.Errorf("%v", r)
+		}
+	} else if err != nil && *err != nil {
+		fmt.Printf("%s : ERROR : %v\n", functionName, *err)
 
-        // Capture the stack trace
-        buf := make([]byte, 10000)
-        runtime.Stack(buf, false)
+		// Capture the stack trace
+		buf := make([]byte, 10000)
+		runtime.Stack(buf, false)
 
-        fmt.Printf("%s : Stack Trace : %s", functionName, string(buf))
-    }
+		fmt.Printf("%s : Stack Trace : %s", functionName, string(buf))
+	}
 }

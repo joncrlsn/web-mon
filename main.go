@@ -8,12 +8,16 @@ package main
 import (
 	"fmt"
 	flag "github.com/ogier/pflag"
+	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 	"time"
+    "errors"
 )
 
 const (
-	ymdhmsFormat = "2006-01-02_1504"
+	ymdhmsFormat = "2006-01-02_150405"
 )
 
 var (
@@ -21,15 +25,16 @@ var (
 	verbose            = false
 	maxResponseTime    = 60 * time.Second
 	threadDumpCount    = 3
-	threadDumpInterval = 8 // seconds
-	monitorInterval    = 3 * time.Minute
-	disableInterval    = 60 * time.Minute // wait interval after a targets alert
+	threadDumpInterval = 8                // seconds
+	monitorInterval    = 3 * time.Minute  // interval between monitoring attempts
+	disableInterval    = 60 * time.Minute // monitor disabled for this interval after it alerts
 	mailHost           = "localhost"
 	mailPort           = 25
 	mailUsername       = ""
 	mailPassword       = ""
 	mailFrom           = ""         // an email address
 	mailTo             = []string{} // a slice of email addresses
+	shellCommand       = ""         // command to run when alert is triggered
 )
 
 var targets = []Target{
@@ -47,19 +52,61 @@ type Target struct {
 // doGet is overridden when testing
 var doGet = func(url string) error {
 	client := NewTimeoutClient(maxResponseTime, maxResponseTime)
-	_, err := client.Get(url)
+	response, err := client.Get(url)
+	if err != nil {
+		log.Printf("Error getting URL: %s: %s", url, err)
+	} else {
+		defer response.Body.Close()
+        if response.StatusCode > 399 {
+            return errors.New("Invalid response code: " + response.Status)
+        }
+		contents, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("Error reading response body: %s", err)
+			return err
+		}
+		if verbose {
+			log.Printf("%s\n", string(contents))
+		}
+	}
 	if verbose {
-		fmt.Println("response was within time limit", url)
+		log.Println("response was within time limit", url)
 	}
 	return err
 }
 
 // handleSlowResponse is overridden when testing
 var handleSlowResponse = func(target Target) {
-	fmt.Println("Slow or error response from", target.host)
+	msg := fmt.Sprintf("Slow or error response from %s", target.host)
+	log.Println(msg)
 
-    sendMail("Slow or error response from "+target.host, "See subject")
-	dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
+	// TODO: Remove dumpthreads.go because the same thing can be done more generically with
+	// a shell command
+	//
+	//dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
+	//
+
+	var output string
+
+	// Optionally run the shell command specified in the config file
+	if len(shellCommand) > 0 {
+		log.Printf("Executing shell command: %s %s %s\n", shellCommand, target.host, target.pidOwner)
+		cmd := exec.Command(shellCommand, target.host, target.pidOwner)
+		bytes, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error running shell command:", err)
+		}
+		output = string(bytes)
+		if verbose {
+			log.Printf("Output:\n %s \n", output)
+		}
+	}
+
+	// Notify configured email addresses (include the output from the shell command)
+	err := sendMail(msg, fmt.Sprintf("%s \n\n %s", msg, output))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error sending mail:", err)
+	}
 }
 
 // processFlags returns true if processing should continue, false otherwise
@@ -129,7 +176,6 @@ func main() {
 	for {
 		select {
 		case tgt := <-alertsChan:
-			fmt.Printf("Slow response from %s\n", tgt.host)
 			handleSlowResponse(tgt)
 		default:
 			time.Sleep(5 * time.Second)
@@ -141,9 +187,8 @@ func main() {
 // monitor waits for a period of time then start times a request for the given URL on a regular basis.
 // If the response is too slow, dump the Java threads and send an email
 func monitor(target Target, alertsChan chan<- Target) {
-	fmt.Printf("monitoring %s: %s\n", target.host, target.url)
+	log.Printf("Monitoring %s: %s\n", target.host, target.url)
 	for {
-		//fmt.Println("doGet(", target.url, ")")
 		err := doGet(target.url)
 		if err != nil {
 			// Let main process know that we've found a slow system
@@ -168,5 +213,5 @@ Program flags are:
 }
 
 func testMailConfig() {
-    sendMail("This is a test from web-mon", "see subject")
+	sendMail("This is a test from web-mon", "see subject")
 }
