@@ -1,6 +1,11 @@
 # web-mon
 A simple web application monitor written in Go (AKA GoLang), but there should be no need to know Go.  Just download the binary for your system and put it into your path.  Web-mon can monitor the HTTP response times for any URL at a configurable interval.  When the response times are too slow, an email is sent, and an optional shell script can be executed, but feel free to fork it to work for your project, or submit a pull request with generally useful changes.  
 
+### download
+[linux64](https://github.com/joncrlsn/web-mon/raw/master/bin-linux64/web-mon "Linux 64-bit version")
+[osx64](https://github.com/joncrlsn/web-mon/raw/master/bin-osx64/web-mon "OSX 64-bit version")
+[win64](https://github.com/joncrlsn/web-mon/raw/master/bin-win64/web-mon.exe "Windows 64-bit version")
+
 ### features
 * configure runtime via an external config file
 * monitor as many URLs as you wish
