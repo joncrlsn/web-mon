@@ -1,5 +1,5 @@
 # web-mon
-A simple web application monitor written in Go (AKA GoLang), but there should be no need to know Go.  Just download the binary for your system and put it into your path.  Web-mon can monitor the HTTP response times for any URL at a configurable interval.  When the response times are too slow, an email is sent, and an optional shell script can be executed, but feel free to fork it to work for your project, or submit a pull request with generally useful changes.  
+A simple web site and web application monitor.  Just download the binary for your system, put it into your path, and follow the easy "getting started" instructions below.  Web-mon will monitor the HTTP response times for any URL at a configurable interval.  When the response times are too slow (or an HTTP error code is detected), an email is sent. An optional shell script can also be executed to do custom things like dump threads or capture system information.
 
 ### download
 [linux64](https://github.com/joncrlsn/web-mon/raw/master/bin-linux64/web-mon "Linux 64-bit version")
@@ -9,8 +9,8 @@ A simple web application monitor written in Go (AKA GoLang), but there should be
 ### features
 * configure runtime via an external config file
 * monitor as many URLs as you wish
-* supports BASIC HTTP authentication (configured per URL)
-* alerts via email when response time is slow, error, or no response
+* supports BASIC HTTP authentication if needed (configured per URL)
+* alerts via email when response time is slow, detects an error, or gets no response
 * when an alert occurs, executes an optional external shell script that takes the hostname as a parameter.  What to do with this?  Maybe you want to get thread dumps or capture system information for that host.
 
 ### getting started
