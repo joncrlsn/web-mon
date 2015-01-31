@@ -16,9 +16,9 @@ A simple web site and web application monitor.  Just download the binary for you
 ### getting started
 * run "web-mon --generate-config > my.config" to create an example configuration file
 * update config file with URLs you wish to monitor
-* configure the email information in inteh config file
-* test the email configuration with "web-mon --test-mail --config=my.config"
-* use the default configuration settings
+* use the default monitor settings (like the interval between monitor attempts) or set your own
+* configure the email settings in the config file
+* test the email settings with "web-mon --test-mail --config=my.config"
 * run "web-mon --config=my.config" 
 
 ### todo
