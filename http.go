@@ -5,18 +5,25 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
-// NewTimeoutClient returns a client that uses a timeout
+var (
+	cookieJar = &CookieJar{jar: make(map[string][]*http.Cookie)}
+)
+
+// NewTimeoutClient returns a client that will timeout and keep in-memory cookies
 func NewTimeoutClient(connectTimeout time.Duration, readWriteTimeout time.Duration) *http.Client {
 
 	return &http.Client{
 		Transport: &http.Transport{
 			Dial: TimeoutDialer(connectTimeout, readWriteTimeout),
 		},
+		Jar: cookieJar,
 	}
 }
 
@@ -30,4 +37,25 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(net, ad
 		conn.SetDeadline(time.Now().Add(rwTimeout))
 		return conn, nil
 	}
+}
+
+// CookieJar holds cookies
+type CookieJar struct {
+	jar map[string][]*http.Cookie
+}
+
+func (p *CookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
+	if verbose {
+		fmt.Printf("The URL is : %s\n", u.String())
+		fmt.Printf("The cookie being set is : %s\n", cookies)
+	}
+	p.jar[u.Host] = cookies
+}
+
+func (p *CookieJar) Cookies(u *url.URL) []*http.Cookie {
+	if verbose {
+		fmt.Printf("The URL is : %s\n", u.String())
+		fmt.Printf("Cookie being returned is : %s\n", p.jar[u.Host])
+	}
+	return p.jar[u.Host]
 }

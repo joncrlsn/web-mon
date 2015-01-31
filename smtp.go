@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/smtp"
-	//"os"
 	"runtime"
 	"strings"
 	"text/template"

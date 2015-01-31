@@ -6,14 +6,15 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	flag "github.com/ogier/pflag"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
-    "errors"
 )
 
 const (
@@ -21,70 +22,74 @@ const (
 )
 
 var (
-	version            = "0.4"
-	verbose            = false
-	maxResponseTime    = 60 * time.Second
-	threadDumpCount    = 3
-	threadDumpInterval = 8                // seconds
-	monitorInterval    = 3 * time.Minute  // interval between monitoring attempts
-	disableInterval    = 60 * time.Minute // monitor disabled for this interval after it alerts
-	mailHost           = "localhost"
-	mailPort           = 25
-	mailUsername       = ""
-	mailPassword       = ""
-	mailFrom           = ""         // an email address
-	mailTo             = []string{} // a slice of email addresses
-	shellCommand       = ""         // command to run when alert is triggered
+	version         = "0.4.2"
+	verbose         = false
+	maxResponseTime = 60 * time.Second
+	monitorInterval = 3 * time.Minute  // interval between monitoring attempts
+	disableInterval = 60 * time.Minute // monitor disabled for this interval after it alerts
+	mailHost        = "localhost"
+	mailPort        = 25
+	mailUsername    = ""
+	mailPassword    = ""
+	mailFrom        = ""         // an email address
+	mailTo          = []string{} // a slice of email addresses
+	shellCommand    = ""         // command to run when alert is triggered
 )
 
-var targets = []Target{
-	Target{host: "xyz", url: "https://xyz.acme.com/api/Ping", pidOwner: "central"},
-	Target{host: "abc", url: "https://abc.acme.com/api/Ping", pidOwner: "blue"},
-}
+// This is populated via the config file
+var targets = []Target{}
 
 // Target represents a hostname and a url to be monitored
 type Target struct {
 	host     string
 	url      string
 	pidOwner string
+	user     string // http BASIC auth user
+	password string // http BASIC auth password
+	err      error
 }
 
 // doGet is overridden when testing
-var doGet = func(url string) error {
+var doGet = func(target Target) error {
+
 	client := NewTimeoutClient(maxResponseTime, maxResponseTime)
-	response, err := client.Get(url)
+
+	req, err := http.NewRequest("GET", target.url, nil)
 	if err != nil {
-		log.Printf("Error getting URL: %s: %s", url, err)
+		log.Printf("Error creating GET request: %s: %s", target.url, err)
+		return err
+	}
+	if len(target.user) > 0 {
+		req.SetBasicAuth(target.user, target.password)
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error getting URL: %s: %s", target.url, err)
+		return err
 	} else {
 		defer response.Body.Close()
-        if response.StatusCode > 399 {
-            return errors.New("Invalid response code: " + response.Status)
-        }
+		if response.StatusCode > 399 {
+			return errors.New("Invalid response code: " + response.Status)
+		}
 		contents, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			log.Printf("Error reading response body: %s", err)
 			return err
 		}
-		if verbose {
+		if verbose && false { // too much for verbose... should be verbose+
 			log.Printf("%s\n", string(contents))
 		}
 	}
 	if verbose {
-		log.Println("response was within time limit", url)
+		log.Println("response was within time limit", target.url)
 	}
-	return err
+	return nil
 }
 
 // handleSlowResponse is overridden when testing
-var handleSlowResponse = func(target Target) {
-	msg := fmt.Sprintf("Slow or error response from %s", target.host)
+var handleSlowResponse = func(target *Target) {
+	msg := fmt.Sprintf("Slow or error response from %s: %s: %s", target.host, target.url, target.err)
 	log.Println(msg)
-
-	// TODO: Remove dumpthreads.go because the same thing can be done more generically with
-	// a shell command
-	//
-	//dumpJavaThreads(target.host, target.url, threadDumpCount, threadDumpInterval)
-	//
 
 	var output string
 
@@ -164,11 +169,15 @@ func main() {
 	}
 
 	// alertsChan communicates errors back from the monitoring go-routines
-	alertsChan := make(chan Target)
+	alertsChan := make(chan *Target)
 
 	// Start each target monitor in a go-routine
 	// When a slow response or an error occurs, a monitor send an alert to the alerts channel
-	for _, target := range targets {
+	for i, target := range targets {
+		if i > 0 {
+			// Spread out the monitors a bit
+			time.Sleep(3 * time.Second)
+		}
 		go monitor(target, alertsChan)
 	}
 
@@ -186,15 +195,17 @@ func main() {
 
 // monitor waits for a period of time then start times a request for the given URL on a regular basis.
 // If the response is too slow, dump the Java threads and send an email
-func monitor(target Target, alertsChan chan<- Target) {
+func monitor(target Target, alertsChan chan<- *Target) {
 	log.Printf("Monitoring %s: %s\n", target.host, target.url)
 	for {
-		err := doGet(target.url)
+		err := doGet(target) // doGet sets the err property of target
 		if err != nil {
 			// Let main process know that we've found a slow system
-			alertsChan <- target
+			target.err = err
+			alertsChan <- &target
 			time.Sleep(disableInterval)
 		} else {
+			target.err = nil
 			time.Sleep(monitorInterval)
 		}
 	}

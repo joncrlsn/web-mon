@@ -74,21 +74,13 @@ func _processConfig(props map[string]string) {
 		maxResponseTime = time.Duration(intVal) * time.Second
 		fmt.Println("maxResponseTime:", maxResponseTime)
 	}
-	if intVal, ok = intValue(props, "threadDumpCount"); ok {
-		threadDumpCount = intVal
-		fmt.Println("threadDumpCount:", threadDumpCount)
-	}
-	if intVal, ok = intValue(props, "threadDumpIntervalInSeconds"); ok {
-		threadDumpInterval = intVal
-		fmt.Println("threadDumpInterval:", threadDumpInterval)
-	}
 	if intVal, ok = intValue(props, "monitorIntervalInMinutes"); ok {
 		monitorInterval = time.Duration(intVal) * time.Minute
 		fmt.Println("monitorInterval:", monitorInterval)
 	}
 	if intVal, ok = intValue(props, "disableIntervalInMinutes"); ok {
 		disableInterval = time.Duration(intVal) * time.Minute
-		fmt.Println("monitorInterval:", monitorInterval)
+		fmt.Println("disableInterval:", disableInterval)
 	}
 	if strVal, ok = props["shellCommand"]; ok {
 		shellCommand = strVal
@@ -121,8 +113,8 @@ func _processConfig(props map[string]string) {
 
 	//
 	// Read the monitor target values.  They must be sequential like this:
-	//   monitor.target1 = abc-xyz,abc-xyz.acme.com,root
-	//   monitor.target2 = def-xyz,def-xyz.acme.com,root
+	//   monitor.target1 = abc-xyz, abc-xyz.acme.com, root, joe, secret
+	//   monitor.target2 = def-xyz, def-xyz.acme.com, root, joe, secret
 	//   ...
 	//
 
@@ -131,11 +123,20 @@ func _processConfig(props map[string]string) {
 	for {
 		i++
 		if strVal, ok = props["monitor.target"+strconv.Itoa(i)]; ok {
-			tgt := commaSplittingRegex.Split(strVal, 3)
-			formatValid := len(tgt) == 3
-			if len(tgt) == 3 {
+			tgt := commaSplittingRegex.Split(strVal, 5)
+			formatValid := len(tgt) > 2
+			if len(tgt) > 1 {
 				if strings.HasPrefix(tgt[1], "http") {
-					target := Target{host: tgt[0], url: tgt[1], pidOwner: tgt[2]}
+					target := Target{host: tgt[0], url: tgt[1]}
+					if len(tgt) > 2 {
+						target.pidOwner = tgt[2]
+					}
+					if len(tgt) > 3 {
+						target.user = tgt[3]
+					}
+					if len(tgt) > 4 {
+						target.password = tgt[4]
+					}
 					targets = append(targets, target)
 				} else {
 					formatValid = false
@@ -143,7 +144,7 @@ func _processConfig(props map[string]string) {
 			}
 			if !formatValid {
 				fmt.Fprintln(os.Stderr, "Invalid target value:", strVal)
-				fmt.Fprintln(os.Stderr, "(target value must have 3 comma-separated values: <host>,<url>,<pidOwner>)", strVal)
+				fmt.Fprintln(os.Stderr, "(target value must have 2 or more comma-separated values: <host>,<url>,<pidOwner>, <mailUser>, <mailPassword>)", strVal)
 			}
 		} else {
 			break // Assume there are no more URLs to monitor
@@ -159,18 +160,12 @@ func generateConfigurationFile() {
 # Monitor configuration
 # ======================
 
-# monitor.target1 = <host1>, <url1>, <pidOwner1>
-# monitor.target2 = <host2>, <url2>, <pidOwner2>
-# monitor.target3 = <host3>, <url3>, <pidOwner3>
+# monitor.target1 = <host1>, <url1>, <pidOwner1>, <httpUser>, <httpPassword>
+# monitor.target2 = <host2>, <url2>, <pidOwner2>, <httpUser>, <httpPassword>
+# monitor.target3 = <host3>, <url3>, <pidOwner3>, <httpUser>, <httpPassword>
 
 # This is the threshold for triggering an alert.  Response times over this value create an alert
 # maxResponseTimeInSeconds    = 60
-
-# The number of thread dumps to be taken
-# threadDumpCount             = 10
-
-# The number of seconds between thread dumps
-# threadDumpIntervalInSeconds = 8 
 
 # The number of minutes between monitor attempts
 # monitorIntervalInMinutes    = 3
