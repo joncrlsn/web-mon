@@ -11,7 +11,7 @@ A simple web site and web application monitor.  Just download the binary for you
 * monitor as many URLs as you wish
 * supports BASIC HTTP authentication if needed (configured per URL)
 * alerts via email when response time is slow, detects an error, or gets no response
-* when an alert occurs, an optional external shell script can be executed.  Why?  Get thread dumps or capture system information for the host
+* when an alert occurs, an optional external shell script can be executed.  Why?  Get thread dumps, capture system information, or whatever you want
 * logs statistics since the last log message (default interval is 1 hour - configurable)
 
 ### getting started
