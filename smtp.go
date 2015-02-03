@@ -41,6 +41,13 @@ func sendMail(subject, message string) error {
 func _sendEmail(host string, port int, userName string, password string, from string, to []string, subject string, message string) (err error) {
 	defer _catchPanic(&err, "_sendEmail")
 
+	if len(host) == 0 {
+		if verbose {
+			fmt.Println("No smtp host.  Skipping email.")
+		}
+		return nil
+	}
+
 	parameters := struct {
 		From    string
 		To      string

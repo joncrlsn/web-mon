@@ -27,7 +27,8 @@ var (
 	maxResponseTime = 60 * time.Second
 	monitorInterval = 3 * time.Minute  // interval between monitoring attempts
 	disableInterval = 60 * time.Minute // monitor disabled for this interval after it alerts
-	mailHost        = "localhost"
+	logInterval     = 60 * time.Minute // time between stats logging
+	mailHost        = ""
 	mailPort        = 25
 	mailUsername    = ""
 	mailPassword    = ""
@@ -43,10 +44,10 @@ var targets = []Target{}
 type Target struct {
 	host     string
 	url      string
-	pidOwner string
 	user     string // http BASIC auth user
 	password string // http BASIC auth password
 	err      error
+	stats    Stats
 }
 
 // doGet is overridden when testing
@@ -64,22 +65,22 @@ var doGet = func(target Target) error {
 	}
 	response, err := client.Do(req)
 	if err != nil {
-		log.Printf("Error getting URL: %s: %s", target.url, err)
+		//log.Printf("Error getting URL: %s: %s", target.url, err)
 		return err
-	} else {
-		defer response.Body.Close()
-		if response.StatusCode > 399 {
-			return errors.New("Invalid response code: " + response.Status)
-		}
-		contents, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("Error reading response body: %s", err)
-			return err
-		}
-		if verbose && false { // too much for verbose... should be verbose+
-			log.Printf("%s\n", string(contents))
-		}
 	}
+	defer response.Body.Close()
+	if response.StatusCode >= 400 {
+		return errors.New("HTTP Error code: " + response.Status)
+	}
+	contents, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %s", err)
+		return err
+	}
+	if verbose && false { // too much for verbose... should be verbose+
+		log.Printf("%s\n", string(contents))
+	}
+
 	if verbose {
 		log.Println("response was within time limit", target.url)
 	}
@@ -88,15 +89,15 @@ var doGet = func(target Target) error {
 
 // handleSlowResponse is overridden when testing
 var handleSlowResponse = func(target *Target) {
-	msg := fmt.Sprintf("Slow or error response from %s: %s: %s", target.host, target.url, target.err)
+	msg := fmt.Sprintf("Slow or error response from %s: %s, error: %s", target.host, target.url, target.err)
 	log.Println(msg)
 
 	var output string
 
 	// Optionally run the shell command specified in the config file
 	if len(shellCommand) > 0 {
-		log.Printf("Executing shell command: %s %s %s\n", shellCommand, target.host, target.pidOwner)
-		cmd := exec.Command(shellCommand, target.host, target.pidOwner)
+		log.Printf("Executing shell command: %s %s %s\n", shellCommand, target.host)
+		cmd := exec.Command(shellCommand, target.host)
 		bytes, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error running shell command:", err)
@@ -108,9 +109,11 @@ var handleSlowResponse = func(target *Target) {
 	}
 
 	// Notify configured email addresses (include the output from the shell command)
-	err := sendMail(msg, fmt.Sprintf("%s \n\n %s", msg, output))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error sending mail:", err)
+	if len(mailHost) > 0 {
+		err := sendMail(msg, fmt.Sprintf("%s \n\n %s", msg, output))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error sending mail:", err)
+		}
 	}
 }
 
@@ -193,19 +196,37 @@ func main() {
 
 }
 
-// monitor waits for a period of time then start times a request for the given URL on a regular basis.
+// monitor waits for a period of time then times a request for the given URL on a regular basis.
 // If the response is too slow, dump the Java threads and send an email
 func monitor(target Target, alertsChan chan<- *Target) {
 	log.Printf("Monitoring %s: %s\n", target.host, target.url)
+	target.stats.Clear()
+
+	// loop indefinitely
 	for {
+		target.err = nil
+		t := time.Now()
+
+		// Make the HTTP call
 		err := doGet(target) // doGet sets the err property of target
+
+		// Record the time it took and handle any errors
+		dur := time.Now().Sub(t)
+		target.stats.Add(dur)
+		if time.Now().Sub(target.stats.StartTime) > logInterval {
+			log.Println(target.stats.String())
+			target.stats.Clear()
+		}
+
 		if err != nil {
 			// Let main process know that we've found a slow system
 			target.err = err
 			alertsChan <- &target
+
+			// Don't monitor again for a while
 			time.Sleep(disableInterval)
 		} else {
-			target.err = nil
+			// Wait for the next time we need to monitor
 			time.Sleep(monitorInterval)
 		}
 	}
@@ -218,11 +239,12 @@ Program flags are:
   -?, --help            : prints a summary of the commands accepted by pgrun
   -V, --version         : prints the version of pgrun being run
   -v, --verbose         : prints extra detail about what is happening
-  -c, --config          : name and path of config file
+  -c, --config          : name and path of config file (required)
   -g, --generate-config : prints an example config file to standard output
+  -m, --test-mail       : sends a test alert email using the configured settings 
 `)
 }
 
 func testMailConfig() {
-	sendMail("This is a test from web-mon", "see subject")
+	sendMail("Test email from web-mon", "Receiving this email means your mail configuration is working")
 }

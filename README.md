@@ -22,4 +22,7 @@ A simple web site and web application monitor.  Just download the binary for you
 * run "web-mon --config=my.config" 
 
 ### todo
+* Print results each hour to standard out
+* Remove pidUser from monitor lines
 * Convert flag handling to go-flags (https://github.com/jessevdk/go-flags)
+

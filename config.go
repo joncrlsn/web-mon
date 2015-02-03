@@ -26,9 +26,9 @@ func intValue(props map[string]string, name string) (int, bool) {
 			return 0, false
 		}
 		return intValue, true
-	} else {
-		return 0, false
 	}
+
+	return 0, false
 }
 
 func boolValue(props map[string]string, name string) (bool, bool) {
@@ -39,9 +39,8 @@ func boolValue(props map[string]string, name string) (bool, bool) {
 			return false, false
 		}
 		return boolValue, true
-	} else {
-		return false, false
 	}
+	return false, false
 }
 
 // processConfigFile reads the properties in the given file and assigns them to global variables
@@ -81,6 +80,10 @@ func _processConfig(props map[string]string) {
 	if intVal, ok = intValue(props, "disableIntervalInMinutes"); ok {
 		disableInterval = time.Duration(intVal) * time.Minute
 		fmt.Println("disableInterval:", disableInterval)
+	}
+	if intVal, ok = intValue(props, "logIntervalInMinutes"); ok {
+		logInterval = time.Duration(intVal) * time.Minute
+		fmt.Println("logInterval:", logInterval)
 	}
 	if strVal, ok = props["shellCommand"]; ok {
 		shellCommand = strVal
@@ -129,13 +132,10 @@ func _processConfig(props map[string]string) {
 				if strings.HasPrefix(tgt[1], "http") {
 					target := Target{host: tgt[0], url: tgt[1]}
 					if len(tgt) > 2 {
-						target.pidOwner = tgt[2]
+						target.user = tgt[2]
 					}
 					if len(tgt) > 3 {
-						target.user = tgt[3]
-					}
-					if len(tgt) > 4 {
-						target.password = tgt[4]
+						target.password = tgt[3]
 					}
 					targets = append(targets, target)
 				} else {
@@ -144,7 +144,7 @@ func _processConfig(props map[string]string) {
 			}
 			if !formatValid {
 				fmt.Fprintln(os.Stderr, "Invalid target value:", strVal)
-				fmt.Fprintln(os.Stderr, "(target value must have 2 or more comma-separated values: <host>,<url>,<pidOwner>, <mailUser>, <mailPassword>)", strVal)
+				fmt.Fprintln(os.Stderr, "(target value must have 2 or more comma-separated values: <host>, <url>, <httpUser>, <httpPassword>)", strVal)
 			}
 		} else {
 			break // Assume there are no more URLs to monitor
@@ -160,9 +160,9 @@ func generateConfigurationFile() {
 # Monitor configuration
 # ======================
 
-# monitor.target1 = <host1>, <url1>, <pidOwner1>, <httpUser>, <httpPassword>
-# monitor.target2 = <host2>, <url2>, <pidOwner2>, <httpUser>, <httpPassword>
-# monitor.target3 = <host3>, <url3>, <pidOwner3>, <httpUser>, <httpPassword>
+# monitor.target1 = <host1>, <url1>, <httpUser>, <httpPassword>
+# monitor.target2 = <host2>, <url2>, <httpUser>, <httpPassword>
+# monitor.target3 = <host3>, <url3>, <httpUser>, <httpPassword>
 
 # This is the threshold for triggering an alert.  Response times over this value create an alert
 # maxResponseTimeInSeconds    = 60
@@ -172,6 +172,9 @@ func generateConfigurationFile() {
 
 # The number of minutes monitoring will be disabled after an alert occurs
 # disableIntervalInMinutes    = 60
+
+# The number of minutes between stats logging
+# logIntervalInMinutes        = 60
 
 # A command to be executed when an alert fires
 # e.g. ssh to the host and dump threads
@@ -184,8 +187,8 @@ func generateConfigurationFile() {
 # Mail configuration
 # ===================
 
-# mailHost = localhost
-# mailPort = 25
+# mailHost     = localhost
+# mailPort     = 25
 # mailUsername = 
 # mailPassword = 
 

@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -44,18 +43,18 @@ type CookieJar struct {
 	jar map[string][]*http.Cookie
 }
 
+// SetCookies is part of the http.CookieJar interface
 func (p *CookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
 	if verbose {
-		fmt.Printf("The URL is : %s\n", u.String())
-		fmt.Printf("The cookie being set is : %s\n", cookies)
+		//fmt.Printf("The cookies being set for url %s are: %s\n", u.String(), cookies)
 	}
 	p.jar[u.Host] = cookies
 }
 
+// Cookies is part of the http.CookieJar interface
 func (p *CookieJar) Cookies(u *url.URL) []*http.Cookie {
 	if verbose {
-		fmt.Printf("The URL is : %s\n", u.String())
-		fmt.Printf("Cookie being returned is : %s\n", p.jar[u.Host])
+		//fmt.Printf("The cookies being returned for url %s are: %s\n", u.String(), p.jar[u.Host])
 	}
 	return p.jar[u.Host]
 }
