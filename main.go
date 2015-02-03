@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	version         = "0.4.2"
+	version         = "0.5"
 	verbose         = false
 	maxResponseTime = 60 * time.Second
 	monitorInterval = 3 * time.Minute  // interval between monitoring attempts

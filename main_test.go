@@ -15,7 +15,7 @@ func Test_monitoring(t *testing.T) {
 	disableInterval = 3 * time.Second
 
 	// Override the normal doGet function
-	doGet = func(url string) error {
+	doGet = func(target Target) error {
 		duration := time.Duration(rand.Float64()*70) * time.Second
 		fmt.Println("test: response time: ", duration)
 		if duration > 60*time.Second {
@@ -25,17 +25,17 @@ func Test_monitoring(t *testing.T) {
 	}
 
 	// Override the normal handleSlowResponse function
-	handleSlowResponse = func(target Target) {
+	handleSlowResponse = func(target *Target) {
 		fmt.Println("test: inside handleSlowResponse function", target.url)
 	}
 
 	targets = []Target{
-		Target{host: "tst-123", url: "https://tst-123/api/Ping", pidOwner: "jcarlson"},
-		Target{host: "tst-abc", url: "https://tst-abc/api/Ping", pidOwner: "jcarlson"},
+		Target{host: "tst-123", url: "https://tst-123/api/Ping"},
+		Target{host: "tst-abc", url: "https://tst-abc/api/Ping"},
 	}
 
 	// alerts communicates errors back from the monitoring go-routines
-	alerts := make(chan Target)
+	alerts := make(chan *Target)
 
 	// start each target monitor in a go-routine
 	for _, target := range targets {

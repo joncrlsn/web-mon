@@ -7,11 +7,12 @@ A simple web site and web application monitor.  Just download the binary for you
 [win64](https://github.com/joncrlsn/web-mon/raw/master/bin-win64/web-mon.exe "Windows 64-bit version")
 
 ### features
-* configure runtime via an external config file
+* configure settings via an external config file
 * monitor as many URLs as you wish
 * supports BASIC HTTP authentication if needed (configured per URL)
 * alerts via email when response time is slow, detects an error, or gets no response
-* when an alert occurs, executes an optional external shell script that takes the hostname as a parameter.  What to do with this?  Maybe you want to get thread dumps or capture system information for that host.
+* when an alert occurs, an optional external shell script can be executed.  Why?  Get thread dumps or capture system information for the host
+* logs statistics since the last log message (default interval is 1 hour - configurable)
 
 ### getting started
 * run "web-mon --generate-config > my.config" to create an example configuration file
@@ -22,7 +23,5 @@ A simple web site and web application monitor.  Just download the binary for you
 * run "web-mon --config=my.config" 
 
 ### todo
-* Print results each hour to standard out
-* Remove pidUser from monitor lines
 * Convert flag handling to go-flags (https://github.com/jessevdk/go-flags)
 
