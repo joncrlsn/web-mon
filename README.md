@@ -33,6 +33,7 @@ Run the monitor:
     # Monitor configuration
     # ======================
 
+    # host, url, httpUser (optional), httpPassword (optional)
     monitor.target1 = google, http://google.com
     monitor.target2 = mywebapi, http://example.com/mywebapi, joe@example.com, super-duper-secret
 
