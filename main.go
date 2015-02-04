@@ -236,9 +236,9 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "usage: %s --config <config-file> \n", os.Args[0])
 	fmt.Fprintln(os.Stderr, `
 Program flags are:
-  -?, --help            : prints a summary of the commands accepted by pgrun
-  -V, --version         : prints the version of pgrun being run
-  -v, --verbose         : prints extra detail about what is happening
+  -?, --help            : prints a summary of the arguments accepted by web-mon
+  -V, --version         : prints the version of web-mon being run
+  -v, --verbose         : prints additional lines to standard output
   -c, --config          : name and path of config file (required)
   -g, --generate-config : prints an example config file to standard output
   -m, --test-mail       : sends a test alert email using the configured settings 

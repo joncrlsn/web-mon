@@ -72,5 +72,16 @@ Run the monitor:
     # A comma-separated list of email addresses that will receive alert emails
     mailTo = me@example.com
 
+## Flags
+
+flag                    | description
+----------------------: | -------------
+  -?, --help            | prints a summary of the arguments accepted by web-mon
+  -V, --version         | prints the version of web-mon being run
+  -v, --verbose         | prints additional lines to standard output
+  -c, --config          | name and path of config file (required)
+  -g, --generate-config | prints an example config file to standard output
+  -m, --test-mail       | sends a test alert email using the configured settings
+
 ### ToDo
 * Convert flag handling to go-flags (https://github.com/jessevdk/go-flags)
