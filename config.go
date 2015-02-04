@@ -127,8 +127,11 @@ func _processConfig(props map[string]string) {
 		i++
 		if strVal, ok = props["monitor.target"+strconv.Itoa(i)]; ok {
 			tgt := commaSplittingRegex.Split(strVal, 5)
-			formatValid := len(tgt) > 2
-			if len(tgt) > 1 {
+			if verbose {
+				fmt.Println("Split target: ", tgt)
+			}
+			formatValid := len(tgt) > 1
+			if formatValid {
 				if strings.HasPrefix(tgt[1], "http") {
 					target := Target{host: tgt[0], url: tgt[1]}
 					if len(tgt) > 2 {
@@ -139,12 +142,13 @@ func _processConfig(props map[string]string) {
 					}
 					targets = append(targets, target)
 				} else {
+					fmt.Fprintln(os.Stderr, "URL must start with http:", tgt[1])
 					formatValid = false
 				}
 			}
 			if !formatValid {
-				fmt.Fprintln(os.Stderr, "Invalid target value:", strVal)
-				fmt.Fprintln(os.Stderr, "(target value must have 2 or more comma-separated values: <host>, <url>, <httpUser>, <httpPassword>)", strVal)
+				fmt.Fprintln(os.Stderr, "Invalid monitor.target value:", strVal)
+				fmt.Fprintln(os.Stderr, "(monitor.target value must have 2 or more comma-separated values: <host>, <httpUrl>, <httpUser>, <httpPassword>)")
 			}
 		} else {
 			break // Assume there are no more URLs to monitor
