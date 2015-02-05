@@ -12,7 +12,7 @@ A simple web site and web application monitor.  Just download the binary for you
 * supports BASIC HTTP authentication if needed (configured per URL)
 * alerts via email when response time is slow, detects an error, or gets no response
 * when an alert occurs, an optional external shell script can be executed.  Why?  Get thread dumps, capture system information, or whatever you want
-* logs statistics since the last stats log message (default interval is 1 hour - configurable)
+* logs statistics since the last stats log message (default interval is 1 hour)
 
 ## Getting Started
 Create an example configuration file:

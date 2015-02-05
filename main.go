@@ -214,7 +214,7 @@ func monitor(target Target, alertsChan chan<- *Target) {
 		dur := time.Now().Sub(t)
 		target.stats.Add(dur)
 		if time.Now().Sub(target.stats.StartTime) > logInterval {
-			log.Println(target.stats.String())
+			log.Println(target.host, target.stats.String())
 			target.stats.Clear()
 		}
 
@@ -246,9 +246,21 @@ Program flags are:
 }
 
 func testMailConfig() {
+	if len(mailHost) == 0 {
+		fmt.Fprintln(os.Stderr, "Error, there is no mail host configured to send a test email to.")
+		return
+	}
+	if len(mailTo) == 0 {
+		fmt.Fprintln(os.Stderr, "Error, there is no 'mailTo' address to send a test email to.")
+		return
+	}
+
+	// Send the test email
 	err := sendMail("Test email from web-mon", "Receiving this email means your mail configuration is working")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Test email error:", err)
+		return
 	}
+
 	fmt.Println("Test email sent")
 }
