@@ -110,7 +110,7 @@ func _processConfig(props map[string]string) {
 		fmt.Println("mailFrom:", mailFrom)
 	}
 	if strVal, ok = props["mailTo"]; ok {
-		mailTo = propertySplittingRegex.Split(strVal, -1)
+		mailTo = commaSplittingRegex.Split(strVal, -1)
 		fmt.Println("mailTo:", mailTo)
 	}
 

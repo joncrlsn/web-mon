@@ -246,5 +246,9 @@ Program flags are:
 }
 
 func testMailConfig() {
-	sendMail("Test email from web-mon", "Receiving this email means your mail configuration is working")
+	err := sendMail("Test email from web-mon", "Receiving this email means your mail configuration is working")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Test email error:", err)
+	}
+	fmt.Println("Test email sent")
 }
