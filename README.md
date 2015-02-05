@@ -83,5 +83,11 @@ flag                    | description
   -g, --generate-config | prints an example config file to standard output
   -m, --test-mail       | sends a test alert email using the configured settings
 
-### ToDo
+## ToDo
 * Convert flag handling to go-flags (https://github.com/jessevdk/go-flags)
+
+## License
+    Copyright (c) 2015 Jon Carlson.  All rights reserved.
+    Use of this source code is governed by the MIT license that can 
+    be found in the LICENSE file or here: http://mit-license.org
+
