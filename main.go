@@ -77,7 +77,8 @@ var doGet = func(target Target) error {
 		log.Printf("Error reading response body: %s", err)
 		return err
 	}
-	if verbose && false { // too much for verbose... should be verbose+
+	if verbose && false { 
+        // this is too much for verbose... should be verbose+
 		log.Printf("%s\n", string(contents))
 	}
 
@@ -89,7 +90,11 @@ var doGet = func(target Target) error {
 
 // handleSlowResponse is overridden when testing
 var handleSlowResponse = func(target *Target) {
-	msg := fmt.Sprintf("Slow or error response from %s: %s, error: %s", target.host, target.url, target.err)
+    errorString := target.err.Error()
+   	msg := fmt.Sprintf("Error response from %s: %s, error: %s", target.host, target.url, target.err)
+    if strings.Contains(errorString, "timeout") {
+    	msg = fmt.Sprintf("Slow response from %s: %s, error: %s", target.host, target.url, target.err)
+    }
 	log.Println(msg)
 
 	var output string
@@ -97,7 +102,7 @@ var handleSlowResponse = func(target *Target) {
 	// Optionally run the shell command specified in the config file
 	if len(shellCommand) > 0 {
 		log.Printf("Executing shell command: %s %s %s\n", shellCommand, target.host)
-		cmd := exec.Command(shellCommand, target.host)
+		cmd := exec.Command(shellCommand, target.host, target.url, errorString)
 		bytes, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error running shell command:", err)
@@ -110,7 +115,9 @@ var handleSlowResponse = func(target *Target) {
 
 	// Notify configured email addresses (include the output from the shell command)
 	if len(mailHost) > 0 {
-		err := sendMail(msg, fmt.Sprintf("%s \n\n %s", msg, output))
+        subject := msg
+        msg = fmt.Sprintf("%s \n\n %s", msg, output)
+		err := sendMail(subject, msg)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error sending mail:", err)
 		}
@@ -245,6 +252,7 @@ Program flags are:
 `)
 }
 
+// testMailConfig sends a test email to the configured addresses
 func testMailConfig() {
 	if len(mailHost) == 0 {
 		fmt.Fprintln(os.Stderr, "Error, there is no mail host configured to send a test email to.")

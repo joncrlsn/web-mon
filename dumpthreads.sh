@@ -8,9 +8,10 @@
 #
 
 HOST=$1
-PROCESS_OWNER=$2
+URL=$2 # Not used in this script
+ERROR="$3" # Not used in this script
 
-ssh -o StrictHostKeyChecking=no $HOST HOST=$HOST PROCESS_OWNER=$PROCESS_OWNER 'bash -s' <<-END
+ssh -o StrictHostKeyChecking=no $HOST HOST=$HOST PROCESS_OWNER=central 'bash -s' <<-END
 #!/bin/bash
 COUNT=10
 INTERVAL=8

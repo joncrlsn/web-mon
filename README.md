@@ -84,6 +84,7 @@ flag                    | description
   -m, --test-mail       | sends a test alert email using the configured settings
 
 ## ToDo
+* Add shell script output to the alert email content
 * Convert flag handling to go-flags (https://github.com/jessevdk/go-flags)
 
 ## License
